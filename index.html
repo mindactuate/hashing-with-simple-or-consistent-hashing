@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
+<!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8"> <![endif]-->
+<!--[if IE 8]>         <html class="no-js lt-ie9"> <![endif]-->
+<!--[if gt IE 8]>      <html class="no-js"> <!--<![endif]-->
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <title>Simple & Consistent Hashing Sharding</title>
+    <meta name="description" content="" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="" />
+  </head>
+  <body>
+    <style>
+      html {
+        margin: 0;
+        padding: 0;
+      }
+      .container {
+        display: flex;
+        flex-direction: row;
+        width: 100vw;
+        justify-content: space-around;
+      }
+      .shard {
+        display: flex;
+        flex-direction: column;
+      }
+    </style>
+    <!--[if lt IE 7]>
+      <p class="browsehappy">
+        You are using an <strong>outdated</strong> browser. Please
+        <a href="#">upgrade your browser</a> to improve your experience.
+      </p>
+    <![endif]-->
+    <div class="container" id="shardContainer"></div>
+
+    <script type="text/javascript" src="murmurhash.js"></script>
+    <script type="text/javascript" src="fakeNames.js"></script>
+    <script type="module">
+      const modes = {
+        simple: 0,
+        consistent: 1,
+      };
+      const keys = fakeNames;
+      runSharding(4, modes.simple);
+
+      function runSharding(numberOfShards, mode) {
+        const numberOfNames = keys.length;
+        const m = mode == modes.consistent ? 200000000 : numberOfShards;
+
+        const shardPositions = [];
+        const shards = {};
+        for (let j = 0; j < numberOfShards; j++) {
+          let shardID = "shard" + j;
+
+          if (mode == modes.consistent) {
+            // 0 ---> s1 -----> s2 -----> s3 ------> s4 ------> 0
+            // calculate position of shards on the ring
+            // create shard elements in html
+            let position = murmur.v3(`shard${j}`) % m;
+            shards[position] = shardID;
+            shardPositions.push(position);
+          }
+
+          // create shard El
+          const shardEl = document.createElement("div");
+          shardEl.className = "shard";
+          const h2 = document.createElement("h2");
+          h2.textContent = "Shard " + j;
+          const div = document.createElement("div");
+          div.id = shardID;
+          shardEl.appendChild(h2);
+          shardEl.appendChild(div);
+          document.getElementById("shardContainer").appendChild(shardEl);
+        }
+        if (mode == modes.consistent) {
+          // https://stackoverflow.com/questions/1063007/how-to-sort-an-array-of-integers-correctly
+          shardPositions.sort((a, b) => a - b);
+          console.log(shards);
+        }
+
+        if (!Array.isArray(keys) || keys.length == 0) {
+          return;
+        }
+
+        keys.forEach((key) => {
+          let keyPosition = null;
+          let shardID = null;
+          if (mode == modes.consistent) {
+            // 0 ---> s1 --x--> s2 -----> s3 ------> s4 ------> 0
+            // calculate position of each key and assign it to shard
+            // in our example: s1 < x <= s2 --> x goes to s2
+            keyPosition = murmur.v3(`seed${key}`) % m;
+            shardID = null;
+
+            if (keyPosition >= 0 && keyPosition <= shardPositions[0]) {
+              // add to first shard
+              shardID = shards[shardPositions[0]];
+            } else if (
+              keyPosition > shardPositions[shardPositions.length - 1]
+            ) {
+              // add to last shard
+              shardID = shards[shardPositions[numberOfShards - 1]];
+            } else {
+              for (let k = 1; k < numberOfShards; k++) {
+                if (
+                  keyPosition > shardPositions[k - 1] &&
+                  keyPosition <= shardPositions[k]
+                ) {
+                  // add to shard k
+                  shardID = shards[shardPositions[k]];
+                }
+              }
+            }
+          } else {
+            // simple hashing -> calculate hash and mod it with the number of shards
+            keyPosition = murmur.v3(`seed${key}`) % m;
+            shardID = `shard${keyPosition}`;
+          }
+
+          console.log(key, keyPosition, shardID);
+          // create element
+          if (shardID) {
+            let shardEl = document.getElementById(shardID);
+            shardEl.insertAdjacentHTML("beforeend", key + "</br>");
+          }
+        });
+      }
+    </script>
+  </body>
+</html>
