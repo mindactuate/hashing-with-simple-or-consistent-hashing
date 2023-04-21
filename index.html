@@ -59,7 +59,6 @@
           if (mode == modes.consistent) {
             // 0 ---> s1 -----> s2 -----> s3 ------> s4 ------> 0
             // calculate position of shards on the ring
-            // create shard elements in html
             let position = murmur.v3(`shard${j}`) % m;
             shards[position] = shardID;
             shardPositions.push(position);
