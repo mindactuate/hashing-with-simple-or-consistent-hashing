@@ -14,6 +14,8 @@ Its interesting to see, that
   * needs few to no resharding when a shard is added or removed
   * but offers a worse distribution
 
+Here you can find a codepen: [codepen.io/mindactuate/pen/OJBbYjr](https://codepen.io/mindactuate/pen/OJBbYjr)
+
 Here a picture to visualize my findings:
 - on the left side you see consistent hashing (left: 3 shards, right: 4 shards)
 - on the right side you see simple hashing (left: 3 shards, right: 4 shards)
